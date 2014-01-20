@@ -1,11 +1,13 @@
 var http = require('http'),
 	cheerio = require('cheerio'),
 	urlInit = "http://www.vget.net",
-	pageTotal = 5;
-	
+	pageTotal = 5,
+	mongo = require('mongoskin'),
+	db = mongo.db('localhost:27017/ghost-spider?auto_reconnect');
+
 //wget函数负责抓取网页html
 //@url 网页链接
-//@callback 回调函数，返回html字符串	
+//@callback 回调函数，返回html字符串
 function wget(url,callback){
 	http.get(url,function(res){
         var size = 0;
@@ -16,11 +18,11 @@ function wget(url,callback){
         })
         res.on('end',function(){
 			//console.log(Buffer.concat(chunks,size).toString());
-            callback( Buffer.concat(chunks,size).toString() );            
+            callback( Buffer.concat(chunks,size).toString() );
         })
 	}).on('error',function(e){
 			console.log('Got error:'+e.message);
-	})	
+	})
 }
 
 //获取文章链接
@@ -38,13 +40,23 @@ function getContent(htmlData){
 	var $ = cheerio.load(htmlData);
 	var title = $('.post-title');
 	var content = $('.post-content');
+	db.collection('blog').insert({
+		title:title.html(),
+		content:content.html()
+	},function(){
+		//插入完回调
+		console.log('insert success:'+title.html())
+	})
+	/*
 	console.log(title.html()+":"+content.html())
 	console.log("===============")
 	console.log("http://vget.net")
 	console.log("===============")
+	*/
 }
 
 //根据网站链接循环
 for(var i=1;i <= pageTotal ;i++){
 	wget(urlInit+'/page/'+i+'/',getTitle);
 }
+
